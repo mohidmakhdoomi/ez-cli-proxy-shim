@@ -35,7 +35,7 @@ git checkout f71ec0eb6776854457892452cf28c47f0d658251 # can remove this line if 
 go build -o cli-proxy-api ./cmd/server
 
 # setup basic config file for CLIProxyAPI
-mkdir -p $HOME/.cli-proxy-api/ && wget -O $HOME/.cli-proxy-api/config_proxy.yaml https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/config_proxy.yaml
+mkdir -p $HOME/.cli-proxy-api/ && wget -O $HOME/.cli-proxy-api/config_proxy.yaml https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/e2dae4a5af65169995eb0ad351a0bfe14710556a/config_proxy.yaml
 
 # do Codex OAuth for CLIProxyAPI
 ./cli-proxy-api --config $HOME/.cli-proxy-api/config_proxy.yaml --codex-login
@@ -49,10 +49,10 @@ rm mycron
 
 # setup Claude Code shim and add to PATH
 mkdir -p "$shim_dir" && pathaddtofile_pre "$shim_dir" "$home_profile"
-wget -O "$shim_dir/claude" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/claude
+wget -O "$shim_dir/claude" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/e2dae4a5af65169995eb0ad351a0bfe14710556a/claude
 chmod 755 "$shim_dir/claude"
 
 # setup settings json for Claude Code shim to use CLIProxyAPI
-mkdir -p "$HOME/.claude" && wget -O "$HOME/.claude/settings_proxy.json" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/settings_proxy.json
+mkdir -p "$HOME/.claude" && wget -O "$HOME/.claude/settings_proxy.json" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/e2dae4a5af65169995eb0ad351a0bfe14710556a/settings_proxy.json
 
 echo "Done. Reboot to have CLIProxyAPI start up automatically."
