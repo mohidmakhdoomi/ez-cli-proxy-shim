@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Placed in ~/.local/bin (which precedes linuxbrew on PATH) so that typing
+# Place in a directory on PATH which precedes REAL_CLAUDE on PATH so that typing
 # `claude` runs this instead of the real binary. We call the real binary by
 # absolute path to avoid recursing into this shim.
 
