@@ -21,7 +21,7 @@ REAL_CLAUDE=/home/linuxbrew/.linuxbrew/bin/claude
 # Examples:
 #   claude -p "hi"                       # default == --raw: real binary bare
 #   claude --shim -p "hi"                # inject env + defaults (--model gpt-5.6-sol,
-#                                        #   --settings settings_proxy.json)
+#                                        #   --settings settings_cliproxyapi.json)
 #   claude --shim --model foo -p "hi"    # soft: keep --model foo, inject --settings only
 #   claude --force-shim --model foo      # forced: drop --model foo, inject both defaults
 raw=0
@@ -67,7 +67,7 @@ if (( force_shim )); then
     esac
   done
   args=("${kept[@]}")
-  inject=(--model gpt-5.6-sol --settings /home/user/.claude/settings_proxy.json)
+  inject=(--model gpt-5.6-sol --settings $HOME/.claude/settings_cliproxyapi.json)
 else
   # --shim: keep the user's flags; only inject the shim default for whichever of
   # --model/--settings the user did NOT supply, so the user's own values override
@@ -85,7 +85,7 @@ else
   done
   inject=()
   (( have_model ))    || inject+=(--model gpt-5.6-sol)
-  (( have_settings )) || inject+=(--settings /home/user/.claude/settings_proxy.json)
+  (( have_settings )) || inject+=(--settings $HOME/.claude/settings_cliproxyapi.json)
 fi
 
 exec env \
