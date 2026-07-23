@@ -1,4 +1,4 @@
-# ez-cli-proxy-shim
+# cc-shimmy
 
 Run Claude Code against a local [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
 instance so `claude` talks to a Codex-backed model (e.g. `gpt-5.6-sol`) instead of
