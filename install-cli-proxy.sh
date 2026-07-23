@@ -1,7 +1,9 @@
 #!/bin/bash
 
-shim_dir="$(pwd)/bin"
-proxy_dir="$(pwd)"
+# shim_dir (where the `claude` shim is installed)
+# proxy_dir (where CLIProxyAPI is cloned, built and run from at boot)
+shim_dir="${1:-$(pwd)/bin}"
+proxy_dir="${2:-$(pwd)}"
 
 home_profile="$HOME/.profile"
 
@@ -33,15 +35,15 @@ git checkout f71ec0eb6776854457892452cf28c47f0d658251 # can remove this line if 
 go build -o cli-proxy-api ./cmd/server
 
 # setup basic config file for CLIProxyAPI
-mkdir -p $HOME/.cli-proxy-api/ && wget -O $HOME/.cli-proxy-api/config_1.yaml https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/config.yaml
+mkdir -p $HOME/.cli-proxy-api/ && wget -O $HOME/.cli-proxy-api/config_proxy.yaml https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/config_proxy.yaml
 
 # do Codex OAuth for CLIProxyAPI
-./cli-proxy-api --config $HOME/.cli-proxy-api/config_1.yaml --codex-login
+./cli-proxy-api --config $HOME/.cli-proxy-api/config_proxy.yaml --codex-login
 
 # schedule CLIProxyAPI startup at boot
 cd "$proxy_dir"
 crontab -l > mycron
-echo "@reboot $proxy_dir/CLIProxyAPI/cli-proxy-api --config $HOME/.cli-proxy-api/config_1.yaml" >> mycron
+echo "@reboot $proxy_dir/CLIProxyAPI/cli-proxy-api --config $HOME/.cli-proxy-api/config_proxy.yaml" >> mycron
 crontab mycron
 rm mycron
 
@@ -51,6 +53,6 @@ wget -O "$shim_dir/claude" https://raw.githubusercontent.com/mohidmakhdoomi/ez-c
 chmod 755 "$shim_dir/claude"
 
 # setup settings json for Claude Code shim to use CLIProxyAPI
-mkdir -p "$HOME/.claude" && wget -O "$HOME/.claude/settings_cliproxyapi.json" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/settings_proxy.json
+mkdir -p "$HOME/.claude" && wget -O "$HOME/.claude/settings_proxy.json" https://raw.githubusercontent.com/mohidmakhdoomi/ez-cli-proxy-shim/f0491c6271cd325251144bb8bfe85992a1fb67fe/settings_proxy.json
 
 echo "Done. Reboot to have CLIProxyAPI start up automatically."
