@@ -52,7 +52,4 @@ mkdir -p "$shim_dir" && pathaddtofile_pre "$shim_dir" "$home_profile"
 wget -O "$shim_dir/claude" https://raw.githubusercontent.com/mohidmakhdoomi/cc-shimmy/6da6b92d620cdeaadfea55753636cb327de2663b/claude
 chmod 755 "$shim_dir/claude"
 
-# setup settings json for Claude Code shim to use CLIProxyAPI
-mkdir -p "$HOME/.claude" && wget -O "$HOME/.claude/settings_proxy.json" https://raw.githubusercontent.com/mohidmakhdoomi/cc-shimmy/6da6b92d620cdeaadfea55753636cb327de2663b/settings_proxy.json
-
 echo "Done. Reboot to have CLIProxyAPI start up automatically."

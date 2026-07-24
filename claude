@@ -3,94 +3,69 @@
 # `claude` runs this instead of the real binary. We call the real binary by
 # absolute path to avoid recursing into this shim.
 
-REAL_CLAUDE=/home/linuxbrew/.linuxbrew/bin/claude
+REAL_CLAUDE=""
+self="$(readlink -f "${BASH_SOURCE[0]}")"
+while IFS= read -r candidate; do
+  [[ "$(readlink -f "$candidate")" == "$self" ]] && continue
+  REAL_CLAUDE="$candidate"
+  break
+done < <(type -ap claude)
 
-# Three shim-only flags (all stripped before exec), a "how much shim?" ladder:
-#   --raw          opt out of BOTH injected defaults *and* the env vars. This is
-#                  the DEFAULT, so the flag is only needed to override --shim /
-#                  --force-shim.
-#   --shim         apply the shim softly: inject the env vars + defaults, but let
-#                  the user's own --model/--settings override the shim's (the
-#                  shim only fills in whichever of the two the user omitted).
-#   --force-shim   apply the shim forcefully: inject the env vars + defaults and
-#                  ignore any user --model/--settings — the shim's values win.
-# --raw is fully dominant: when combined with either shim flag it wins and the
-# user's own flags pass through untouched. --force-shim is the "force" variant of
-# --shim, so it takes precedence over --shim when both are given.
+if [[ -z "$REAL_CLAUDE" ]]; then
+  echo "claude shim: no real claude binary found on PATH" >&2
+  exit 127
+fi
+
+# One flag (stripped before exec on real binary):
+#   --shim   apply the shim: inject the env vars + default model, 
+#            but let the user's own --model override the shim's 
+#            (the shim only fills in --model when the user omitted it).
 #
 # Examples:
-#   claude -p "hi"                       # default == --raw: real binary bare
-#   claude --shim -p "hi"                # inject env + defaults (--model gpt-5.6-sol,
-#                                        #   --settings settings_proxy.json)
-#   claude --shim --model foo -p "hi"    # soft: keep --model foo, inject --settings only
-#   claude --force-shim --model foo      # forced: drop --model foo, inject both defaults
-raw=0
-force_shim=0
+#   claude -p "hi"                       # default: real binary bare
+#   claude --shim -p "hi"                # inject env + default model gpt-5.6-sol
+#   claude --shim --model foo -p "hi"    # inject env + keep user's --model foo
 shim=0
 args=()
 for arg in "$@"; do
   case "$arg" in
-    --raw)         raw=1 ;;
-    --force-shim)  force_shim=1 ;;
-    --shim)        shim=1 ;;
+    --shim)  shim=1 ;;
     *) args+=("$arg") ;;
   esac
 done
 
-# By default (and with explicit --raw) the shim bypasses the injected env vars
-# and defaults — run the real binary bare, with the user's args (including any
-# --model/--settings) passed through verbatim.
-if (( raw || (! force_shim && ! shim) )); then
+# By default the shim bypasses the injected env vars and default model — runs the real 
+# binary bare, with the user's args (including any --model) passed through verbatim.
+if (( ! shim )); then
   exec "$REAL_CLAUDE" "${args[@]}"
 fi
 
-# From here on the shim injects its env vars + defaults. The two force modes
-# differ only in how they treat the user's own --model/--settings.
+# From here on the shim injects its env vars + default model.
 #
 # subagent_model tracks the *effective* --model so CLAUDE_CODE_SUBAGENT_MODEL can
-# follow it. It defaults to the shim's model and is overridden below only in
-# --shim mode when the user supplies their own --model (force-shim always drops
-# the user's model, so the default stands).
+# follow it. It defaults to the shim's model and is overridden below when the user
+# supplies their own --model.
 subagent_model=gpt-5.6-sol
-if (( force_shim )); then
-  # --force-shim: drop any user-supplied --model/--settings so the shim's
-  # defaults are the only ones the real binary sees. Handles both `--flag value`
-  # and `--flag=value` forms.
-  kept=()
-  skip_next=0
-  for arg in "${args[@]}"; do
-    if (( skip_next )); then skip_next=0; continue; fi
-    case "$arg" in
-      --model|--settings)     skip_next=1 ;;
-      --model=*|--settings=*) ;;
-      *)                      kept+=("$arg") ;;
-    esac
-  done
-  args=("${kept[@]}")
-  inject=(--model gpt-5.6-sol --settings $HOME/.claude/settings_proxy.json)
-else
-  # --shim: keep the user's flags; only inject the shim default for whichever of
-  # --model/--settings the user did NOT supply, so the user's own values override
-  # the shim's.
-  have_model=0
-  have_settings=0
-  want_model_val=0
-  for arg in "${args[@]}"; do
-    if (( want_model_val )); then subagent_model="$arg"; want_model_val=0; fi
-    case "$arg" in
-      --model)                 have_model=1; want_model_val=1 ;;
-      --model=*)               have_model=1; subagent_model="${arg#--model=}" ;;
-      --settings|--settings=*) have_settings=1 ;;
-    esac
-  done
-  inject=()
-  (( have_model ))    || inject+=(--model gpt-5.6-sol)
-  (( have_settings )) || inject+=(--settings $HOME/.claude/settings_proxy.json)
-fi
+
+# --shim: keep the user's flags; only inject the shim default for --model when the
+# user did NOT supply it, so the user's own value overrides the shim's.
+have_model=0
+want_model_val=0
+for arg in "${args[@]}"; do
+  if (( want_model_val )); then subagent_model="$arg"; want_model_val=0; fi
+  case "$arg" in
+    --model)                 have_model=1; want_model_val=1 ;;
+    --model=*)               have_model=1; subagent_model="${arg#--model=}" ;;
+  esac
+done
+inject=()
+(( have_model )) || inject+=(--model gpt-5.6-sol)
 
 exec env \
   CLAUDE_CODE_SUBAGENT_MODEL="$subagent_model" \
   CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1 \
   CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=3 \
   ENABLE_TOOL_SEARCH=false \
+  ANTHROPIC_BASE_URL="http://127.0.0.1:8317" \
+  ANTHROPIC_AUTH_TOKEN="cli-proxy-local" \
   "$REAL_CLAUDE" "${inject[@]}" "${args[@]}"
